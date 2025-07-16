@@ -1,0 +1,419 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    width: 380px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #333;
+}
+
+.container {
+    background: white;
+    border-radius: 6px;
+    margin: 2px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+    display: none; /* 隐藏标题栏 */
+}
+
+/* 旧的header样式已移除 */
+
+.indices-section, .my-stocks-section {
+    padding: 8px 12px;
+}
+
+.indices-section {
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+}
+
+.my-stocks-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
+    border-bottom: 2px solid #e2e8f0;
+    border-radius: 6px 6px 0 0;
+    margin-top: -4px;
+}
+
+.indices-section h2, .my-stocks-section h2 {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #666;
+}
+
+.my-stocks-section h2 {
+    font-size: 14px;
+    color: #2d3748;
+    font-weight: 700;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.view-controls {
+    display: flex;
+    gap: 2px;
+}
+
+.refresh-btn {
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+    background: rgba(66, 153, 225, 0.1);
+    color: #4299e1;
+}
+
+.refresh-btn:hover {
+    background: rgba(66, 153, 225, 0.2);
+}
+
+.view-btn {
+    padding: 2px 6px;
+    font-size: 9px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    color: #666;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.view-btn.active, .view-btn:hover {
+    background: #4299e1;
+    color: white;
+    border-color: #4299e1;
+}
+
+.indices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.index-item {
+  background: #f8f9fa;
+  border-radius: 4px;
+  padding: 4px 6px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  min-height: 40px;
+}
+
+.stock-item {
+  background: #f8f9fa;
+  border-radius: 4px;
+  padding: 6px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.index-item:hover, .stock-item:hover, .my-stock-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+}
+
+.index-name, .stock-name {
+  font-size: 10px;
+  font-weight: 600;
+  margin-bottom: 1px;
+  color: #333;
+  line-height: 1.1;
+}
+
+.index-price, .stock-price {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 0px;
+  line-height: 1.0;
+}
+
+.index-change, .stock-change {
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.0;
+}
+
+.up {
+    color: #e53e3e !important;
+}
+
+.down {
+    color: #38a169 !important;
+}
+
+.search-container {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+#stockSearch {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 11px;
+    transition: border-color 0.2s;
+}
+
+#stockSearch:focus {
+    outline: none;
+    border-color: #4299e1;
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.1);
+}
+
+#addStock {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all 0.2s;
+    box-shadow: 0 1px 2px rgba(66, 153, 225, 0.3);
+}
+
+#addStock:hover {
+    background: linear-gradient(135deg, #3182ce 0%, #2c5aa0 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(66, 153, 225, 0.4);
+}
+
+.remove-btn {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #e53e3e;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    font-size: 9px;
+    cursor: pointer;
+    display: none;
+}
+
+.footer {
+    background: #f7fafc;
+    padding: 4px 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.update-time {
+    font-size: 9px;
+    color: #718096;
+    text-align: center;
+}
+
+.loading {
+    text-align: center;
+    color: #718096;
+    font-size: 11px;
+    padding: 10px;
+}
+
+.error {
+    color: #e53e3e;
+    text-align: center;
+    font-size: 11px;
+    padding: 10px;
+}
+
+
+
+/* 我的股票样式 */
+.my-stocks-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  margin-bottom: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.my-stocks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+/* 为我的股票区域添加滚动条样式 */
+.my-stocks-grid::-webkit-scrollbar,
+.my-stocks-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.my-stocks-grid::-webkit-scrollbar-track,
+.my-stocks-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+}
+
+.my-stocks-grid::-webkit-scrollbar-thumb,
+.my-stocks-list::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+}
+
+.my-stocks-grid::-webkit-scrollbar-thumb:hover,
+.my-stocks-list::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+.my-stock-item {
+  background: #f8f9fa;
+  border-radius: 4px;
+  padding: 4px 6px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  min-height: 40px;
+}
+
+/* 移动到上面的合并规则中 */
+
+.my-stock-item:hover .remove-btn {
+    display: block;
+}
+
+/* 拖拽相关样式 */
+.my-stock-item {
+    cursor: grab;
+}
+
+.my-stock-item:active {
+    cursor: grabbing;
+}
+
+.my-stock-item.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+}
+
+.my-stock-item.drag-over {
+    border: 2px dashed #4299e1;
+    background: #ebf8ff;
+}
+
+.drag-handle {
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #a0aec0;
+  font-size: 10px;
+  cursor: grab;
+  line-height: 1;
+}
+
+.drag-handle:hover {
+    color: #4299e1;
+}
+
+.empty-hint {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #718096;
+    font-size: 11px;
+    padding: 20px 12px;
+    font-style: italic;
+    line-height: 1.4;
+    background: #f7fafc;
+    border: 1px dashed #e2e8f0;
+    border-radius: 6px;
+    margin: 4px 0;
+}
+
+/* 统一的股票内容容器 */
+.stock-content {
+    margin-left: 12px;
+    flex: 1;
+}
+
+.stock-code {
+    font-size: 8px;
+    color: #666;
+    font-weight: normal;
+}
+
+/* 网格视图样式 */
+.my-stock-item.grid-item .stock-content {
+    display: block;
+}
+
+.my-stock-item.grid-item .stock-name {
+    margin-bottom: 1px;
+}
+
+.my-stock-item.grid-item .stock-code {
+    display: none; /* 网格模式下隐藏代码 */
+}
+
+/* 列表视图样式 - 极致压缩 */
+.my-stock-item.list-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1px;
+    padding: 2px 4px;
+    min-height: 28px;
+}
+
+.my-stock-item.list-item .stock-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-left: 6px;
+}
+
+.my-stock-item.list-item .drag-handle {
+    left: 1px;
+    font-size: 8px;
+}
+
+.my-stock-item.list-item .stock-name {
+    flex: 1;
+    margin-bottom: 0;
+    font-size: 9px;
+}
+
+.my-stock-item.list-item .stock-price {
+    margin-bottom: 0;
+    font-size: 11px;
+    margin-right: 8px;
+}
+
+.my-stock-item.list-item .stock-change {
+    font-size: 8px;
+    text-align: right;
+    min-width: 60px;
+}
+
+/* 为视图切换添加平滑过渡 */
+.my-stocks-grid .my-stock-item,
+.my-stocks-list .my-stock-item {
+    transition: all 0.15s ease-in-out;
+}

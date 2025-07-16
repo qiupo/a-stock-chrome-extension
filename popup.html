@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A股行情助手</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 A股行情</h1>
+            <div class="refresh-btn" id="refreshBtn">🔄</div>
+        </div>
+        
+        <div class="my-stocks-section">
+            <div class="section-header">
+                <h2>📊 我的自选股票</h2>
+                <div class="header-controls">
+                    <div class="refresh-btn" id="refreshBtn">🔄</div>
+                    <div class="view-controls">
+                        <button id="gridViewBtn" class="view-btn active">块状</button>
+                        <button id="listViewBtn" class="view-btn">列表</button>
+                    </div>
+                </div>
+            </div>
+            <div class="search-container">
+                <input type="text" id="stockSearch" placeholder="输入股票代码，多个代码用逗号分隔（如：600519,000858,300750）">
+                <button id="addStock">批量添加</button>
+            </div>
+            <div id="myStocks" class="my-stocks-grid">
+                <div class="empty-hint">🎯 还没有添加股票<br/>试试添加几个代码：600519,000858,300750</div>
+            </div>
+        </div>
+        
+        <div class="indices-section">
+            <h2>📈 主要指数</h2>
+            <div id="indices" class="indices-grid">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <div class="update-time">更新时间: <span id="updateTime">--</span></div>
+        </div>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html> 

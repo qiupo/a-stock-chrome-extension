@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图标生成器</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .icon-container { display: flex; gap: 20px; margin: 20px 0; }
+        .icon { display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; font-weight: bold; border-radius: 8px; }
+        .icon-16 { width: 16px; height: 16px; font-size: 8px; }
+        .icon-48 { width: 48px; height: 48px; font-size: 24px; }
+        .icon-128 { width: 128px; height: 128px; font-size: 64px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        canvas { border: 1px solid #ddd; margin: 10px; }
+    </style>
+</head>
+<body>
+    <h1>A股行情助手 - 图标生成器</h1>
+    
+    <div class="icon-container">
+        <div class="icon icon-16">📈</div>
+        <div class="icon icon-48">📈</div>
+        <div class="icon icon-128">📈</div>
+    </div>
+    
+    <p>以上是预览效果，点击下方按钮生成图标文件：</p>
+    
+    <button onclick="generateIcon(16)">生成 16x16 图标</button>
+    <button onclick="generateIcon(48)">生成 48x48 图标</button>
+    <button onclick="generateIcon(128)">生成 128x128 图标</button>
+    <button onclick="generateAllIcons()">生成所有图标</button>
+    
+    <div id="canvasContainer"></div>
+    
+    <script>
+        function generateIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // 渐变背景
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#4facfe');
+            gradient.addColorStop(1, '#00f2fe');
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // 圆角效果
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.beginPath();
+            const radius = size * 0.1;
+            ctx.roundRect(0, 0, size, size, radius);
+            ctx.fill();
+            
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // 添加股票图表样式的图标
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size / 16;
+            ctx.lineCap = 'round';
+            
+            // 绘制简单的股票走势线
+            ctx.beginPath();
+            ctx.moveTo(size * 0.15, size * 0.7);
+            ctx.lineTo(size * 0.35, size * 0.5);
+            ctx.lineTo(size * 0.55, size * 0.6);
+            ctx.lineTo(size * 0.75, size * 0.3);
+            ctx.lineTo(size * 0.85, size * 0.25);
+            ctx.stroke();
+            
+            // 添加向上箭头
+            ctx.beginPath();
+            ctx.moveTo(size * 0.8, size * 0.3);
+            ctx.lineTo(size * 0.85, size * 0.25);
+            ctx.lineTo(size * 0.9, size * 0.3);
+            ctx.stroke();
+            
+            // 显示 canvas
+            const container = document.getElementById('canvasContainer');
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = `<p>icon${size}.png 预览：</p>`;
+            wrapper.appendChild(canvas);
+            
+            // 添加下载链接
+            const link = document.createElement('a');
+            link.download = `icon${size}.png`;
+            link.href = canvas.toDataURL();
+            link.textContent = `下载 icon${size}.png`;
+            link.style.display = 'block';
+            link.style.margin = '10px 0';
+            wrapper.appendChild(link);
+            
+            container.appendChild(wrapper);
+        }
+        
+        function generateAllIcons() {
+            document.getElementById('canvasContainer').innerHTML = '';
+            generateIcon(16);
+            generateIcon(48);
+            generateIcon(128);
+        }
+        
+        // 添加 roundRect polyfill
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+                this.beginPath();
+                this.moveTo(x + radius, y);
+                this.lineTo(x + width - radius, y);
+                this.quadraticCurveTo(x + width, y, x + width, y + radius);
+                this.lineTo(x + width, y + height - radius);
+                this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                this.lineTo(x + radius, y + height);
+                this.quadraticCurveTo(x, y + height, x, y + height - radius);
+                this.lineTo(x, y + radius);
+                this.quadraticCurveTo(x, y, x + radius, y);
+                this.closePath();
+            };
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,30 @@
+{
+  "name": "a-stock-market-extension",
+  "version": "1.0.0",
+  "description": "A股行情助手 - Chrome浏览器插件，实时查看股票涨跌情况",
+  "main": "popup.js",
+  "scripts": {
+    "build": "echo 'Building extension...' && echo 'Done!'",
+    "dev": "echo 'Development mode - reload extension in Chrome after changes'",
+    "pack": "echo 'Please use Chrome Extensions page to pack the extension'",
+    "icons": "open create_icons.html || start create_icons.html || xdg-open create_icons.html"
+  },
+  "keywords": [
+    "chrome-extension",
+    "stock",
+    "a-share",
+    "china-stock",
+    "finance",
+    "market"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/a-stock-market-extension"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/a-stock-market-extension/issues"
+  },
+  "homepage": "https://github.com/yourusername/a-stock-market-extension#readme"
+} 
