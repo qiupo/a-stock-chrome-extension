@@ -3,7 +3,77 @@ class StockExtension {
     this.userStocks = [];
     this.refreshTimeoutId = null; // 用于管理自动刷新的timeout ID
     this.isRefreshing = false; // 防止重复刷新
+    this.isMarketOpen = true; // 市场是否开市
     this.init();
+  }
+
+  // 检测市场是否开市
+  isMarketOpenNow() {
+    const now = new Date();
+    const day = now.getDay(); // 0=周日, 1=周一, ..., 6=周六
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+    const timeInMinutes = hour * 60 + minute;
+
+    // 周末休市
+    if (day === 0 || day === 6) {
+      return false;
+    }
+
+    // A股交易时间：
+    // 上午：9:30-11:30 (570-690分钟)
+    // 下午：13:00-15:00 (780-900分钟)
+    const morningStart = 9 * 60 + 30;  // 9:30
+    const morningEnd = 11 * 60 + 30;   // 11:30
+    const afternoonStart = 13 * 60;    // 13:00
+    const afternoonEnd = 15 * 60;      // 15:00
+
+    const isInMorningSession = timeInMinutes >= morningStart && timeInMinutes <= morningEnd;
+    const isInAfternoonSession = timeInMinutes >= afternoonStart && timeInMinutes <= afternoonEnd;
+
+    return isInMorningSession || isInAfternoonSession;
+  }
+
+  // 获取下次开市时间（毫秒）
+  getNextMarketOpenTime() {
+    const now = new Date();
+    const day = now.getDay();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+    const timeInMinutes = hour * 60 + minute;
+
+    // 创建一个新的日期对象用于计算
+    const nextOpen = new Date(now);
+
+    // 如果是周五晚上或周末，下次开市是下周一
+    if (day === 5 && timeInMinutes >= 15 * 60) { // 周五15:00后
+      nextOpen.setDate(now.getDate() + (8 - day)); // 到下周一
+      nextOpen.setHours(9, 30, 0, 0);
+    } else if (day === 6 || day === 0) { // 周末
+      const daysToMonday = day === 6 ? 2 : 1;
+      nextOpen.setDate(now.getDate() + daysToMonday);
+      nextOpen.setHours(9, 30, 0, 0);
+    } else {
+      // 工作日内
+      if (timeInMinutes < 9 * 60 + 30) {
+        // 今天9:30前，下次开市是今天9:30
+        nextOpen.setHours(9, 30, 0, 0);
+      } else if (timeInMinutes >= 11 * 60 + 30 && timeInMinutes < 13 * 60) {
+        // 中午休市，下次开市是今天13:00
+        nextOpen.setHours(13, 0, 0, 0);
+      } else if (timeInMinutes >= 15 * 60) {
+        // 今天15:00后，下次开市是明天9:30
+        nextOpen.setDate(now.getDate() + 1);
+        nextOpen.setHours(9, 30, 0, 0);
+        
+        // 如果明天是周六，则到下周一
+        if (nextOpen.getDay() === 6) {
+          nextOpen.setDate(nextOpen.getDate() + 2);
+        }
+      }
+    }
+
+    return nextOpen.getTime() - now.getTime(); // 返回毫秒差
   }
 
   async init() {
@@ -12,6 +82,9 @@ class StockExtension {
     
     // 临时添加：测试指数数据获取
     // this.testIndexData();
+    
+    // 临时添加：测试市场时间逻辑
+    // this.testMarketTime();
     
     this.loadData();
     this.startAutoRefresh();
@@ -828,13 +901,37 @@ class StockExtension {
       minute: "2-digit",
       second: "2-digit",
     });
-    document.getElementById("updateTime").textContent = timeStr;
+    
+    // 更新时间显示
+    const timeElement = document.getElementById("updateTime");
+    if (timeElement) {
+      const marketStatus = this.isMarketOpenNow() ? "📈 开市" : "😴 休市";
+      timeElement.innerHTML = `${timeStr} <span style="color: ${this.isMarketOpenNow() ? '#48bb78' : '#ed8936'};">${marketStatus}</span>`;
+    }
   }
 
   async manualRefresh() {
     if (this.isRefreshing) {
       console.log("正在刷新中，请稍候...");
       return;
+    }
+    
+    // 检查市场状态
+    const marketOpen = this.isMarketOpenNow();
+    if (!marketOpen) {
+      const nextOpenTime = this.getNextMarketOpenTime();
+      const minutesToOpen = Math.round(nextOpenTime / 1000 / 60);
+      console.log(`当前市场休市，距离下次开市还有 ${minutesToOpen} 分钟`);
+      
+      // 显示休市提示
+      const message = minutesToOpen > 60 
+        ? `市场休市中 😴\n距离开市还有约 ${Math.round(minutesToOpen / 60)} 小时`
+        : `市场休市中 😴\n距离开市还有 ${minutesToOpen} 分钟`;
+      
+      // 临时显示提示消息
+      this.showMarketClosedMessage(message);
+      
+      // 仍然允许手动刷新，但给出提示
     }
     
     // 添加视觉反馈
@@ -870,6 +967,35 @@ class StockExtension {
         }
       });
     }
+  }
+
+  // 显示市场休市提示
+  showMarketClosedMessage(message) {
+    const messageDiv = document.createElement("div");
+    messageDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(237, 137, 54, 0.95);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(237, 137, 54, 0.3);
+      text-align: center;
+      white-space: pre-line;
+    `;
+    messageDiv.textContent = message;
+    document.body.appendChild(messageDiv);
+
+    // 3秒后移除提示
+    setTimeout(() => {
+      if (messageDiv.parentNode) {
+        messageDiv.parentNode.removeChild(messageDiv);
+      }
+    }, 3000);
   }
 
   // 测试指数数据获取的专用函数
@@ -934,6 +1060,47 @@ class StockExtension {
     console.log("=== 指数数据测试完成 ===");
   }
 
+  // 测试市场时间逻辑
+  testMarketTime() {
+    console.log("=== 市场时间测试 ===");
+    const now = new Date();
+    console.log(`当前时间: ${now.toLocaleString("zh-CN")}`);
+    console.log(`当前是否开市: ${this.isMarketOpenNow()}`);
+    
+    if (!this.isMarketOpenNow()) {
+      const nextOpenTime = this.getNextMarketOpenTime();
+      const minutes = Math.round(nextOpenTime / 1000 / 60);
+      console.log(`距离下次开市: ${minutes} 分钟`);
+    }
+    
+    // 测试一些特定时间点
+    const testTimes = [
+      { hour: 9, minute: 0, desc: "9:00 开市前" },
+      { hour: 9, minute: 30, desc: "9:30 开市" },
+      { hour: 11, minute: 30, desc: "11:30 午休开始" },
+      { hour: 13, minute: 0, desc: "13:00 午休结束" },
+      { hour: 15, minute: 0, desc: "15:00 收市" },
+      { hour: 18, minute: 0, desc: "18:00 收市后" }
+    ];
+    
+    testTimes.forEach(time => {
+      const testDate = new Date();
+      testDate.setHours(time.hour, time.minute, 0, 0);
+      
+      // 临时修改时间进行测试
+      const originalNow = Date.now;
+      Date.now = () => testDate.getTime();
+      
+      const isOpen = this.isMarketOpenNow();
+      console.log(`${time.desc}: ${isOpen ? '开市' : '休市'}`);
+      
+      // 恢复原始时间函数
+      Date.now = originalNow;
+    });
+    
+    console.log("=== 市场时间测试完成 ===");
+  }
+
   stopAutoRefresh() {
     if (this.refreshTimeoutId) {
       clearTimeout(this.refreshTimeoutId);
@@ -946,8 +1113,28 @@ class StockExtension {
     // 先停止之前的自动刷新
     this.stopAutoRefresh();
     
+    // 检查当前市场状态
+    this.checkMarketStatus();
+    
     // 使用递归setTimeout确保在上一次请求完成后再开始下一次
     const scheduleNextRefresh = async () => {
+      // 检查市场是否开市
+      const marketOpen = this.isMarketOpenNow();
+      
+      if (!marketOpen) {
+        // 市场休市，计算下次开市时间
+        const nextOpenTime = this.getNextMarketOpenTime();
+        console.log(`市场休市中，将在下次开市时恢复刷新。距离开市还有 ${Math.round(nextOpenTime / 1000 / 60)} 分钟`);
+        
+        // 等待到下次开市时间再继续
+        this.refreshTimeoutId = setTimeout(() => {
+          console.log("市场开市，恢复自动刷新");
+          scheduleNextRefresh();
+        }, Math.min(nextOpenTime, 60000)); // 最多等待1分钟后重新检查
+        
+        return;
+      }
+
       // 如果已经在刷新中，跳过这次
       if (this.isRefreshing) {
         this.refreshTimeoutId = setTimeout(scheduleNextRefresh, 1000);
@@ -969,7 +1156,24 @@ class StockExtension {
     
     // 1秒后开始第一次自动刷新
     this.refreshTimeoutId = setTimeout(scheduleNextRefresh, 1000);
-    console.log("自动刷新已启动，间隔1秒");
+    console.log("自动刷新已启动，会根据市场开市状态智能调整");
+  }
+
+  // 检查并更新市场状态
+  checkMarketStatus() {
+    const wasOpen = this.isMarketOpen;
+    this.isMarketOpen = this.isMarketOpenNow();
+    
+    if (wasOpen !== this.isMarketOpen) {
+      if (this.isMarketOpen) {
+        console.log("🔔 市场开市了！");
+      } else {
+        console.log("😴 市场休市中");
+      }
+    }
+    
+    // 每分钟检查一次市场状态
+    setTimeout(() => this.checkMarketStatus(), 60000);
   }
 }
 
