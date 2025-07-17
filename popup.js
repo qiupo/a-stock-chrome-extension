@@ -1,6 +1,8 @@
 class StockExtension {
   constructor() {
     this.userStocks = [];
+    this.refreshTimeoutId = null; // 用于管理自动刷新的timeout ID
+    this.isRefreshing = false; // 防止重复刷新
     this.init();
   }
 
@@ -18,7 +20,10 @@ class StockExtension {
   bindEvents() {
     document
       .getElementById("refreshBtn")
-      .addEventListener("click", () => this.loadData());
+      .addEventListener("click", () => this.manualRefresh());
+    document
+      .getElementById("refreshBtn2")
+      .addEventListener("click", () => this.manualRefresh());
     document
       .getElementById("addStock")
       .addEventListener("click", () => this.addStock());
@@ -826,6 +831,47 @@ class StockExtension {
     document.getElementById("updateTime").textContent = timeStr;
   }
 
+  async manualRefresh() {
+    if (this.isRefreshing) {
+      console.log("正在刷新中，请稍候...");
+      return;
+    }
+    
+    // 添加视觉反馈
+    const refreshButtons = [
+      document.getElementById("refreshBtn"),
+      document.getElementById("refreshBtn2")
+    ];
+    
+    try {
+      this.isRefreshing = true;
+      console.log("手动刷新开始...");
+      
+      // 显示加载状态
+      refreshButtons.forEach(btn => {
+        if (btn) {
+          btn.innerHTML = "⏳";
+          btn.style.pointerEvents = "none";
+        }
+      });
+      
+      await this.loadData();
+      console.log("手动刷新完成");
+    } catch (error) {
+      console.error("手动刷新失败:", error);
+    } finally {
+      this.isRefreshing = false;
+      
+      // 恢复按钮状态
+      refreshButtons.forEach(btn => {
+        if (btn) {
+          btn.innerHTML = "🔄";
+          btn.style.pointerEvents = "auto";
+        }
+      });
+    }
+  }
+
   // 测试指数数据获取的专用函数
   async testIndexData() {
     console.log("=== 开始测试指数数据获取 ===");
@@ -888,11 +934,42 @@ class StockExtension {
     console.log("=== 指数数据测试完成 ===");
   }
 
+  stopAutoRefresh() {
+    if (this.refreshTimeoutId) {
+      clearTimeout(this.refreshTimeoutId);
+      this.refreshTimeoutId = null;
+      console.log("自动刷新已停止");
+    }
+  }
+
   startAutoRefresh() {
-    // 每30秒自动刷新一次
-    setInterval(() => {
-      this.loadData();
-    }, 30000);
+    // 先停止之前的自动刷新
+    this.stopAutoRefresh();
+    
+    // 使用递归setTimeout确保在上一次请求完成后再开始下一次
+    const scheduleNextRefresh = async () => {
+      // 如果已经在刷新中，跳过这次
+      if (this.isRefreshing) {
+        this.refreshTimeoutId = setTimeout(scheduleNextRefresh, 1000);
+        return;
+      }
+
+      try {
+        this.isRefreshing = true;
+        await this.loadData(); // 等待数据加载完成
+      } catch (error) {
+        console.error("自动刷新失败:", error);
+      } finally {
+        this.isRefreshing = false;
+      }
+      
+      // 上一次请求完成后，等待1秒再发起下一次请求
+      this.refreshTimeoutId = setTimeout(scheduleNextRefresh, 1000);
+    };
+    
+    // 1秒后开始第一次自动刷新
+    this.refreshTimeoutId = setTimeout(scheduleNextRefresh, 1000);
+    console.log("自动刷新已启动，间隔1秒");
   }
 }
 
