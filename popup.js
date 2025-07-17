@@ -7,6 +7,10 @@ class StockExtension {
   async init() {
     await this.loadUserStocks();
     this.bindEvents();
+    
+    // 临时添加：测试指数数据获取
+    // this.testIndexData();
+    
     this.loadData();
     this.startAutoRefresh();
   }
@@ -84,11 +88,21 @@ class StockExtension {
       const indicesData = await this.fetchStockData(
         indices.map((item) => item.code)
       );
-      this.displayIndices(indices, indicesData);
+      
+      // 检查是否获取到足够的数据
+      const dataCount = Object.keys(indicesData).length;
+      if (dataCount === 0) {
+        console.warn("未获取到任何指数数据");
+        this.displayIndicesError("网络连接异常，请稍后刷新");
+      } else if (dataCount < indices.length) {
+        console.warn(`仅获取到 ${dataCount}/${indices.length} 个指数数据`);
+        this.displayIndices(indices, indicesData);
+      } else {
+        this.displayIndices(indices, indicesData);
+      }
     } catch (error) {
       console.error("获取指数数据失败:", error);
-      document.getElementById("indices").innerHTML =
-        '<div class="error">获取指数数据失败</div>';
+      this.displayIndicesError("获取指数数据失败，请检查网络连接");
     }
   }
 
@@ -144,7 +158,6 @@ class StockExtension {
     // 优先级2: 新浪API - 通常中文名称更准确
       try {
         const sinaUrl = `https://hq.sinajs.cn/list=${sinaCodeStr}`;
-        // console.log('请求新浪API:', sinaUrl);
         
         // 添加超时控制，3秒超时
         const controller = new AbortController();
@@ -195,7 +208,6 @@ class StockExtension {
           // 如果新浪API失败，回退到腾讯API
       try {
         const tencentUrl = `https://qt.gtimg.cn/q=${sinaCodeStr}`;
-        // console.log('请求腾讯API:', tencentUrl);
         
         // 腾讯API也添加2秒超时
         const tencentController = new AbortController();
@@ -252,11 +264,15 @@ class StockExtension {
     const lines = data.split("\n").filter((line) => line.trim());
     const stocks = {};
 
-    lines.forEach((line) => {
+    console.log(`新浪API原始数据行数: ${lines.length}`);
+
+    lines.forEach((line, index) => {
       const match = line.match(/var hq_str_(.+?)="(.+?)"/);
       if (match) {
         const code = match[1];
         const info = match[2].split(",");
+
+        console.log(`新浪API解析第${index + 1}行: ${code}, 数据段数: ${info.length}`);
 
         if (info.length >= 32) {
           // 新浪API数据格式：名称,今开,昨收,现价,最高,最低,...
@@ -268,7 +284,7 @@ class StockExtension {
 
           // 检查股票名称和价格是否有效
           if (stockName && stockName !== "" && !stockName.includes("N/A") && currentPrice > 0) {
-            console.log(`新浪API解析: ${code} -> "${stockName}" 价格:${currentPrice}`);
+            console.log(`新浪API解析成功: ${code} -> "${stockName}" 价格:${currentPrice}`);
             stocks[code] = {
               name: stockName,
               price: currentPrice,
@@ -280,7 +296,11 @@ class StockExtension {
           } else {
             console.warn(`新浪API数据问题: ${code} -> 名称="${stockName}", 价格=${currentPrice}`);
           }
+        } else {
+          console.warn(`新浪API数据段不足: ${code} -> 仅有${info.length}段数据`);
         }
+      } else {
+        console.warn(`新浪API解析失败的行: ${line.substring(0, 100)}...`);
       }
     });
 
@@ -405,9 +425,36 @@ class StockExtension {
 
     const html = indices
       .map((index) => {
-        const stockData = data[index.code];
-        if (!stockData) return "";
+        // 尝试多种方式匹配数据
+        let stockData = data[index.code]; // 完整代码匹配，如 sh000001
+        
+        if (!stockData) {
+          // 尝试不带前缀的代码，如 000001
+          const codeWithoutPrefix = index.code.substring(2);
+          stockData = data[codeWithoutPrefix];
+        }
+        
+        if (!stockData) {
+          // 尝试查找包含该代码的任何键
+          const possibleKey = Object.keys(data).find(key => 
+            key.includes(index.code.substring(2)) || index.code.includes(key)
+          );
+          if (possibleKey) {
+            stockData = data[possibleKey];
+          }
+        }
 
+        if (!stockData) {
+          // 如果没有数据，显示占位符，保持原样式
+          return `
+            <div class="index-item">
+                <div class="index-name">${index.name}</div>
+                <div class="index-price" style="color: #999;">--</div>
+                <div class="index-change" style="color: #999; font-size: 9px;">数据获取中...</div>
+            </div>
+          `;
+        }
+        
         const isUp = stockData.change >= 0;
         const changeClass = isUp ? "up" : "down";
         const changeSymbol = isUp ? "+" : "";
@@ -429,6 +476,11 @@ class StockExtension {
       .join("");
 
     container.innerHTML = html;
+  }
+
+  displayIndicesError(message) {
+    document.getElementById("indices").innerHTML = 
+      `<div class="error">${message}</div>`;
   }
 
   displayMyStocks(codes, data) {
@@ -627,17 +679,27 @@ class StockExtension {
   async fetchFromEastmoney(codes) {
     try {
       // 东方财富的格式：0.000001,1.600519 (0=深市，1=沪市)
+      // 特殊处理指数代码
       const eastmoneyCodes = codes.map(code => {
         if (code.startsWith("sh")) {
-          return "1." + code.substring(2);
+          const number = code.substring(2);
+          // 上证指数特殊处理
+          if (number === "000001") {
+            return "1.000001"; // 上证指数
+          } else if (number === "000300") {
+            return "1.000300"; // 沪深300
+          }
+          return "1." + number;
         } else if (code.startsWith("sz")) {
           return "0." + code.substring(2);
         }
         return code;
       }).join(",");
 
+      console.log("东方财富API请求代码:", eastmoneyCodes);
+
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 增加超时时间到3秒
 
       const url = `https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f2,f3,f4,f12,f14&secids=${eastmoneyCodes}`;
       
@@ -655,6 +717,7 @@ class StockExtension {
 
       if (response.ok) {
         const data = await response.json();
+        console.log("东方财富API响应:", data);
         const result = {};
         
         if (data.data && data.data.diff) {
@@ -665,6 +728,8 @@ class StockExtension {
             const changePercent = item.f3 || 0; // 涨跌幅百分比
             const change = item.f4 || 0; // 涨跌额（直接使用，不需要计算）
             
+            console.log(`东方财富解析: ${normalizedCode} -> "${item.f14}" 价格:${currentPrice}`);
+            
             result[normalizedCode] = {
               name: item.f14 || code,
               price: currentPrice,
@@ -674,6 +739,7 @@ class StockExtension {
           });
         }
         
+        console.log("东方财富API最终结果:", result);
         return result;
       }
     } catch (error) {
@@ -758,6 +824,68 @@ class StockExtension {
       second: "2-digit",
     });
     document.getElementById("updateTime").textContent = timeStr;
+  }
+
+  // 测试指数数据获取的专用函数
+  async testIndexData() {
+    console.log("=== 开始测试指数数据获取 ===");
+    
+    const testCodes = ["sh000001", "sh000300"];
+    
+    for (const code of testCodes) {
+      console.log(`\n测试代码: ${code}`);
+      
+      // 测试新浪API
+      try {
+        const sinaUrl = `https://hq.sinajs.cn/list=${code}`;
+        console.log(`新浪API URL: ${sinaUrl}`);
+        
+        const response = await fetch(sinaUrl, {
+          method: "GET",
+          headers: {
+            Accept: "text/plain, */*",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            Referer: "https://finance.sina.com.cn",
+          }
+        });
+        
+        if (response.ok) {
+          const text = await response.text();
+          console.log(`新浪API响应长度: ${text.length}`);
+          console.log(`新浪API响应内容: ${text.substring(0, 200)}...`);
+        } else {
+          console.log(`新浪API响应错误: ${response.status}`);
+        }
+      } catch (error) {
+        console.log(`新浪API请求异常: ${error.message}`);
+      }
+      
+      // 测试腾讯API
+      try {
+        const tencentUrl = `https://qt.gtimg.cn/q=${code}`;
+        console.log(`腾讯API URL: ${tencentUrl}`);
+        
+        const response = await fetch(tencentUrl, {
+          method: "GET",
+          headers: {
+            Accept: "text/plain, */*",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          }
+        });
+        
+        if (response.ok) {
+          const text = await response.text();
+          console.log(`腾讯API响应长度: ${text.length}`);
+          console.log(`腾讯API响应内容: ${text.substring(0, 200)}...`);
+        } else {
+          console.log(`腾讯API响应错误: ${response.status}`);
+        }
+      } catch (error) {
+        console.log(`腾讯API请求异常: ${error.message}`);
+      }
+    }
+    
+    console.log("=== 指数数据测试完成 ===");
   }
 
   startAutoRefresh() {
